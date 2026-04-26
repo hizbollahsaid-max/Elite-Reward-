@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Taka Rush - Elite Reward</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/js/all.min.js"></script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
+
+    <style>
+        :root {
+            --bg-dark: #012a21; /* ডার্ক গ্রিন ব্যাকগ্রাউন্ড */
+            --card-bg: #0a3d33; /* কার্ডের রঙ */
+            --accent: #22c55e; /* উজ্জ্বল সবুজ */
+            --text-gray: #94a3b8;
+            --white: #ffffff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        
+        body { 
+            background: var(--bg-dark); 
+            color: var(--white); 
+            padding-bottom: 100px;
+        }
+
+        .container { max-width: 480px; margin: 0 auto; min-height: 100vh; }
+
+        /* Header */
+        header {
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .profile-info { display: flex; align-items: center; gap: 12px; }
+        .avatar { width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--accent); }
+        .user-details h4 { font-size: 16px; margin: 0; }
+        .user-details span { font-size: 12px; color: #a855f7; font-weight: bold; }
+        .header-wallet { background: rgba(255, 255, 255, 0.1); padding: 8px 15px; border-radius: 20px; display: flex; align-items: center; gap: 8px; font-weight: bold; }
+
+        /* Balance Card */
+        .balance-card {
+            background: var(--card-bg);
+            margin: 15px;
+            padding: 25px;
+            border-radius: 24px;
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .verify-badge {
+            position: absolute; top: 20px; right: 20px;
+            background: rgba(34, 197, 94, 0.2); color: #4ade80;
+            padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: bold;
+            display: flex; align-items: center; gap: 4px;
+        }
+        .balance-label { color: var(--text-gray); font-size: 14px; }
+        .balance-amount { font-size: 36px; font-weight: 800; margin: 10px 0 20px 0; display: block; }
+
+        .action-btns { display: flex; gap: 12px; }
+        .btn {
+            flex: 1; padding: 12px; border-radius: 12px; border: none; font-weight: 700;
+            display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
+        }
+        .btn-earn { background: var(--accent); color: white; }
+        .btn-withdraw { background: rgba(255,255,255,0.1); color: white; }
+
+        /* Stats Grid */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px; }
+        .stat-box { background: var(--card-bg); padding: 20px; border-radius: 20px; text-align: center; }
+        .stat-icon { width: 40px; height: 40px; background: rgba(34, 197, 94, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; color: var(--accent); }
+
+        /* Notice Board */
+        .notice-board {
+            background: rgba(245, 158, 11, 0.05); margin: 15px; padding: 15px;
+            border-radius: 18px; border: 1.5px solid #f59e0b; display: flex; align-items: center; gap: 12px;
+        }
+        .notice-icon { background: #f59e0b; width: 35px; height: 35px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; }
+
+        /* Leaderboard */
+        .leaderboard-card {
+            background: linear-gradient(135deg, #6366f1, #a855f7); margin: 15px; padding: 18px;
+            border-radius: 20px; display: flex; justify-content: space-between; align-items: center;
+        }
+
+        /* Nav */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0; background: #06261f;
+            display: flex; justify-content: space-around; padding: 10px 0; z-index: 1000;
+        }
+      .nav-item { 
+    color: var(--text-gray); 
+    text-align: center; 
+    font-size: 12px;        /* ১১ থেকে ১২ করা হয়েছে */
+    text-decoration: none; 
+    padding-top: 5px; 
+    font-weight: 600;       /* লেখাও একটু বোল্ড করা হয়েছে */
+}
+        .nav-item.active { color: var(--accent); }
+      .nav-item i { 
+    font-size: 24px;       /* আইকন বড় করার জন্য ২০ থেকে ২৪ করা হয়েছে */
+    margin-bottom: 2px;    /* আইকন এবং নিচের লেখার দূরত্ব কিছুটা কমানো হয়েছে */
+    display: block; 
+    font-weight: 900;      /* আইকন মোটা বা বোল্ড করার জন্য এটি যোগ করা হয়েছে */
+}
+        .fab-button {
+            position: relative; top: -25px; background: var(--accent);
+            width: 55px; height: 55px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            border: 5px solid var(--bg-dark); color: white; font-size: 20px;
+        }
+
+        .section { display: none; }
+        .section.active { display: block; }
+        
+        /* Input Styles for Withdraw */
+        input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: none; background: rgba(255,255,255,0.1); color: white; outline: none; }
+  
+  
+  
+
+  
+  
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <!-- Header Section Update -->
+<header>
+    <div class="profile-info">
+        <!-- এখানে id="header-img" যোগ করা হয়েছে -->
+        <img src="https://i.pravatar.cc/150?img=11" class="avatar" id="header-img">
+        <div class="user-details">
+            <!-- এখানে id="header-name" যোগ করা হয়েছে -->
+            <h4 id="header-name">✨ USER_NAME <i class="fas fa-check-circle" style="color:#64748b;"></i></h4>
+            <span>Bronze</span>
+        </div>
+    </div>
+    <div class="header-wallet">
+        <i class="fas fa-wallet" style="color: #a855f7;"></i>
+        <span id="header-balance">0.00</span> BDT
+    </div>
+</header>
+
+        <!-- Home Section -->
+        <div id="home-section" class="section active">
+            <div class="balance-card">
+                <div class="verify-badge"><i class="fas fa-check-circle"></i> VERIFY</div>
+                <span class="balance-label">Total Balance</span>
+                <span class="balance-amount">৳ <span id="main-balance">0.00</span></span>
+                <div class="action-btns">
+                    <button class="btn btn-earn" onclick="navigateTo('tasks')"><i class="fas fa-coins"></i> Earn</button>
+                    <button class="btn btn-withdraw" onclick="navigateTo('profile')"><i class="fas fa-university"></i> Withdraw</button>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-icon"><i class="fas fa-play"></i></div>
+                    <h3 id="stat-ads">0</h3>
+                    <p style="font-size: 12px; color: var(--text-gray);">Ads Watched</p>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-icon" style="color:#3b82f6;"><i class="fas fa-users"></i></div>
+                    <h3 id="stat-refer">0</h3>
+                    <p style="font-size: 12px; color: var(--text-gray);">Referrals</p>
+                </div>
+            </div>
+
+            <div class="notice-board">
+                <div class="notice-icon"><i class="fas fa-bullhorn"></i></div>
+                <div style="flex:1; overflow:hidden;">
+                    <div style="display:flex; justify-content:space-between; font-size:11px;">
+                        <span style="color:#f59e0b; font-weight:bold;">NOTICE BOARD</span>
+                        <span style="background:#f59e0b; color:black; padding:0 5px; border-radius:3px;">LIVE</span>
+                    </div>
+                    <marquee style="font-size:12px; color:white; margin-top:3px;">Welcome to Taka Rush! Complete your daily tasks to earn rewards.</marquee>
+                </div>
+          
+          
+          <!-- Referral Card -->
+<div class="stat-box" style="margin: 15px; background: linear-gradient(135deg, #0a3d33, #02211a); border: 1px solid rgba(34, 197, 94, 0.3);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h4 style="color: var(--accent);"><i class="fas fa-users"></i> Refer & Earn</h4>
+        <span style="font-size: 10px; background: rgba(34, 197, 94, 0.2); padding: 2px 8px; border-radius: 10px;">৳ 5.00/Per Refer</span>
+    </div>
+    
+    <div style="display: flex; gap: 8px; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 12px; align-items: center;">
+        <input type="text" id="refer-link-input" readonly 
+               style="margin-bottom: 0; font-size: 11px; background: transparent; border: none; padding: 5px; color: #94a3b8;" 
+               value="Generating link...">
+        <button onclick="copyReferLink()" style="background: var(--accent); border: none; color: white; width: 40px; height: 35px; border-radius: 8px; cursor: pointer;">
+            <i class="fas fa-copy"></i>
+        </button>
+    </div>
+    <p style="font-size: 10px; color: #64748b; margin-top: 8px; text-align: left;">Share this link to Telegram. When someone joins, you get reward!</p>
+</div>
+          
+   </div>
+
+        
+
+        
+         <div class="leaderboard-card">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <i class="fas fa-crown" style="font-size:24px;"></i>
+                    <div>
+                        <h4 style="margin:0;">Leaderboard</h4>
+                        <p style="font-size:11px; opacity:0.8;">Check top earners & rank</p>
+                    </div>
+                </div>
+                <i class="fas fa-arrow-right"></i>
+            </div>
+        </div>
+
+        <!-- Tasks Section -->
+        <div id="tasks-section" class="section" style="padding:15px;">
+            <h2 style="margin-bottom:15px;">Daily Tasks</h2>
+            <div class="stat-box" style="text-align:left; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <h4>Video Ad Task</h4>
+                    <p style="color:var(--accent)">Reward: ৳ 10.00</p>
+                </div>
+                <button class="btn btn-earn" style="flex:none; padding:8px 20px;" onclick="claimAdReward(10)">Watch</button>
+            </div>
+        </div>
+
+    <!-- Withdraw/Profile Section -->
+<div id="profile-section" class="section" style="padding:15px;">
+    <!-- প্রোফাইল এডিট বক্স (নতুন যুক্ত করা হয়েছে) -->
+    <div class="stat-box" style="margin-bottom: 20px;">
+        <h3 style="margin-bottom:15px;">Edit Profile Settings</h3>
+        <input type="text" id="edit-name" placeholder="Enter Your Name">
+        <input type="text" id="edit-img" placeholder="Profile Image URL (Link)">
+        <button class="btn btn-earn" style="width:100%; margin-top: 10px;" onclick="updateProfile()">Save Profile</button>
+    </div>
+
+    <!-- আগের উইথড্র বক্স -->
+    <div class="stat-box">
+        <h3 style="margin-bottom:15px;">Withdraw Wallet</h3>
+        <input type="text" id="withdraw-number" placeholder="Bkash/Nagad Number">
+        <input type="number" id="withdraw-amount" placeholder="Amount (Min 50)">
+        <button class="btn btn-earn" style="width:100%;" onclick="sendRequest()">Send Request</button>
+    </div>
+</div>
+
+        <!-- Navigation Bar -->
+        <nav class="bottom-nav">
+            <a href="#" class="nav-item active" onclick="navigateTo('home', this)"><i class="fas fa-home"></i>Home</a>
+            <a href="#" class="nav-item" onclick="navigateTo('tasks', this)"><i class="fas fa-th-large"></i>Earn</a>
+            <div class="fab-button" onclick="navigateTo('tasks')"><i class="fas fa-play"></i></div>
+            <a href="#" class="nav-item" onclick="navigateTo('profile', this)"><i class="fas fa-wallet"></i>Wallet</a>
+            <a href="#" class="nav-item" onclick="navigateTo('profile', this)"><i class="fas fa-user"></i>Profile</a>
+        </nav>
+    </div>
+
+    <div id="toast" style="position:fixed; top:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:white; padding:10px 20px; border-radius:10px; display:none; z-index:9999;"></div>
+
+    <script>
+    // ১. আপনার ফায়ারবেস কনফিগারেশন (আগের মতোই)
+    const firebaseConfig = {
+        apiKey: "AIzaSyBmkOpRQMS-04mk1cbTTi6y-CaSA1RQhsI",
+        authDomain: "elite-reward-23bdc.firebaseapp.com",
+        databaseURL: "https://elite-reward-23bdc-default-rtdb.firebaseio.com",
+        projectId: "elite-reward-23bdc",
+        storageBucket: "elite-reward-23bdc.firebasestorage.app",
+        messagingSenderId: "26353499620",
+        appId: "1:26353499620:web:b92d1cee2859ec608e5bf1"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // ২. ইউজার আইডি এবং বোট আইডি সেটআপ
+    const tg = window.Telegram?.WebApp;
+    const user = tg?.initDataUnsafe?.user;
+const userId = user ? user.id.toString() : null; // এখানে null রাখা হয়েছে যাতে অপরিচিত কেউ আপনার ডাটা না পায়
+    const botUsername = "elitereward_bot"; 
+
+    let currentBalance = 0;
+
+    // ৩. অ্যাপ শুরু হওয়ার মেইন ফাংশন (আগেও ছিল, এখন নতুন ডাটা যোগ হয়েছে)
+    function initApp() {
+    if (!userId) {
+        alert("Please open this app from Telegram Bot!");
+        return;
+    }
+
+    db.ref('users/' + userId).on('value', (snapshot) => {
+        let data = snapshot.val();
+        
+        // যদি ইউজার ডাটাবেসে না থাকে (নতুন ইউজার)
+        if (!data) {
+            data = {
+                userName: user.first_name || "User_" + userId,
+                balance: 0,
+                totalAds: 0,
+                totalRefer: 0,
+                profilePic: user.photo_url || "https://i.pravatar.cc/150?img=11",
+                joinedAt: new Date().toLocaleString()
+            };
+            db.ref('users/' + userId).set(data); // নতুন ইউজারের জন্য ডাটা সেভ হবে
+        }
+
+        // ইউজার ইন্টারফেস (UI) আপডেট
+        currentBalance = parseFloat(data.balance || 0);
+        document.getElementById('main-balance').innerText = currentBalance.toFixed(2);
+        document.getElementById('header-balance').innerText = currentBalance.toFixed(2);
+        document.getElementById('stat-ads').innerText = data.totalAds || 0;
+        document.getElementById('stat-refer').innerText = data.totalRefer || 0;
+
+        // নাম ও ছবি আপডেট
+        document.getElementById('header-name').innerHTML = `${data.userName} <i class="fas fa-check-circle" style="color:#22c55e;"></i>`;
+        document.getElementById('header-img').src = data.profilePic;
+        
+        // এডিট বক্সেও মানগুলো বসিয়ে দেওয়া
+        document.getElementById('edit-name').value = data.userName;
+        document.getElementById('edit-img').value = data.profilePic;
+    });
+
+    setupReferral();
+}
+    // ৪. রেফারেল লিঙ্ক তৈরির ফাংশন (নতুন)
+    function setupReferral() {
+        const referLink = `https://t.me/${botUsername}?start=${userId}`;
+        const inputField = document.getElementById('refer-link-input');
+        if(inputField) inputField.value = referLink;
+    }
+
+    // ৫. লিঙ্ক কপি করার ফাংশন (নতুন)
+    function copyReferLink() {
+        const copyText = document.getElementById("refer-link-input");
+        copyText.select();
+        navigator.clipboard.writeText(copyText.value);
+        showToast("Refer Link Copied! 🔗");
+    }
+
+    // ৬. প্রোফাইল আপডেট করার ফাংশন (নতুন)
+    function updateProfile() {
+        const newName = document.getElementById('edit-name').value;
+        const newImg = document.getElementById('edit-img').value;
+        if (!newName) return showToast("Name is required!");
+
+        db.ref('users/' + userId).update({
+            userName: newName,
+            profilePic: newImg || "https://i.pravatar.cc/150?img=11"
+        }).then(() => showToast("Profile Updated! ✅"));
+    }
+
+    // ৭. অ্যাড রিওয়ার্ড ফাংশন (আপনার আগের ফাংশন)
+    function claimAdReward(amount) {
+        db.ref('users/' + userId).update({
+            balance: currentBalance + amount,
+            totalAds: firebase.database.ServerValue.increment(1)
+        }).then(() => showToast("৳" + amount + " Reward Added!"));
+    }
+
+    // ৮. উইথড্র রিকোয়েস্ট ফাংশন (আপনার আগের ফাংশন)
+    function sendRequest() {
+        const number = document.getElementById('withdraw-number').value;
+        const amount = parseFloat(document.getElementById('withdraw-amount').value);
+        if (!number || !amount || amount < 50) return showToast("Min 50 BDT required!");
+        if (amount > currentBalance) return showToast("Low Balance!");
+
+        db.ref('withdrawals').push({
+            userName: userId, number, amount, method: "Mobile", status: "pending", time: new Date().toLocaleString()
+        }).then(() => {
+            db.ref('users/' + userId).update({ balance: currentBalance - amount });
+            showToast("Request Sent! ✅");
+            document.getElementById('withdraw-number').value = "";
+            document.getElementById('withdraw-amount').value = "";
+        });
+    }
+
+    // ৯. পেজ নেভিগেশন (আপনার আগের ফাংশন)
+    function navigateTo(id, el) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.getElementById(id + '-section').classList.add('active');
+        if(el) {
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            if(el.classList.contains('nav-item')) el.classList.add('active');
+        }
+    }
+
+    // ১০. টোস্ট মেসেজ (আপনার আগের ফাংশন)
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg; t.style.display = 'block';
+        setTimeout(() => t.style.display = 'none', 2500);
+    }
+
+    window.onload = initApp;
+</script>
+</body>
+</html>
