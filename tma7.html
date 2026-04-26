@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Taka Rush - Elite Reward</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/js/all.min.js"></script>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
+
+    <!-- টেলিগ্রাম এসডিকে (এটি অবশ্যই লাগবে) -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <style>
+        :root {
+            --bg-dark: #012a21;
+            --card-bg: #0a3d33;
+            --accent: #22c55e;
+            --text-gray: #94a3b8;
+            --white: #ffffff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: var(--bg-dark); color: var(--white); padding-bottom: 100px; }
+        .container { max-width: 480px; margin: 0 auto; min-height: 100vh; }
+
+        header { padding: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .profile-info { display: flex; align-items: center; gap: 12px; }
+        .avatar { width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--accent); object-fit: cover; }
+        .user-details h4 { font-size: 16px; margin: 0; }
+        .user-details span { font-size: 12px; color: #a855f7; font-weight: bold; }
+        .header-wallet { background: rgba(255, 255, 255, 0.1); padding: 8px 15px; border-radius: 20px; display: flex; align-items: center; gap: 8px; font-weight: bold; }
+
+        .balance-card { background: var(--card-bg); margin: 15px; padding: 25px; border-radius: 24px; position: relative; border: 1px solid rgba(255,255,255,0.05); }
+        .verify-badge { position: absolute; top: 20px; right: 20px; background: rgba(34, 197, 94, 0.2); color: #4ade80; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; display: flex; align-items: center; gap: 4px; }
+        .balance-amount { font-size: 36px; font-weight: 800; margin: 10px 0 20px 0; display: block; }
+
+        .action-btns { display: flex; gap: 12px; }
+        .btn { flex: 1; padding: 12px; border-radius: 12px; border: none; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
+        .btn-earn { background: var(--accent); color: white; }
+        .btn-withdraw { background: rgba(255,255,255,0.1); color: white; }
+
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px; }
+        .stat-box { background: var(--card-bg); padding: 20px; border-radius: 20px; text-align: center; }
+        .stat-icon { width: 40px; height: 40px; background: rgba(34, 197, 94, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; color: var(--accent); }
+
+        .notice-board { background: rgba(245, 158, 11, 0.05); margin: 15px; padding: 15px; border-radius: 18px; border: 1.5px solid #f59e0b; display: flex; align-items: center; gap: 12px; }
+        .leaderboard-card { background: linear-gradient(135deg, #6366f1, #a855f7); margin: 15px; padding: 18px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; }
+
+        /* Navigation Bar Fixed */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #06261f; display: flex; justify-content: space-around; padding: 12px 0; z-index: 1000; border-top: 1px solid rgba(255,255,255,0.1); }
+        .nav-item { color: var(--text-gray); text-align: center; font-size: 12px; text-decoration: none; font-weight: 600; }
+        .nav-item.active { color: var(--accent); }
+        .nav-item i { font-size: 24px; margin-bottom: 4px; display: block; font-weight: 900; }
+        
+        .fab-button { position: relative; top: -30px; background: var(--accent); width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 5px solid var(--bg-dark); color: white; font-size: 24px; }
+
+        .section { display: none; }
+        .section.active { display: block; }
+        input { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: none; background: rgba(255,255,255,0.1); color: white; outline: none; }
+        #toast { position:fixed; top:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.9); color:white; padding:10px 20px; border-radius:10px; display:none; z-index:9999; border: 1px solid var(--accent); }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <div class="profile-info">
+                <img src="https://i.pravatar.cc/150?img=11" class="avatar" id="header-img">
+                <div class="user-details">
+                    <h4 id="header-name">Loading...</h4>
+                    <span id="user-rank">Bronze</span>
+                </div>
+            </div>
+            <div class="header-wallet">
+                <i class="fas fa-wallet" style="color: #a855f7;"></i>
+                <span id="header-balance">0.00</span> BDT
+            </div>
+        </header>
+
+        <div id="home-section" class="section active">
+            <div class="balance-card">
+                <div class="verify-badge"><i class="fas fa-check-circle"></i> VERIFY</div>
+                <span class="balance-label">Total Balance</span>
+                <span class="balance-amount">৳ <span id="main-balance">0.00</span></span>
+                <div class="action-btns">
+                    <button class="btn btn-earn" onclick="navigateTo('tasks')"><i class="fas fa-coins"></i> Earn</button>
+                    <button class="btn btn-withdraw" onclick="navigateTo('profile')"><i class="fas fa-university"></i> Withdraw</button>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-icon"><i class="fas fa-play"></i></div>
+                    <h3 id="stat-ads">0</h3>
+                    <p style="font-size: 12px; color: var(--text-gray);">Ads Watched</p>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-icon" style="color:#3b82f6;"><i class="fas fa-users"></i></div>
+                    <h3 id="stat-refer">0</h3>
+                    <p style="font-size: 12px; color: var(--text-gray);">Referrals</p>
+                </div>
+            </div>
+
+            <!-- Referral Card -->
+            <div class="stat-box" style="margin: 15px; background: linear-gradient(135deg, #0a3d33, #02211a); border: 1px solid rgba(34, 197, 94, 0.3); text-align: left;">
+                <h4 style="color: var(--accent); margin-bottom: 10px;"><i class="fas fa-users"></i> Refer & Earn (৳ 5.00)</h4>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="refer-link-input" readonly style="margin-bottom: 0; font-size: 11px; background: rgba(0,0,0,0.3);">
+                    <button onclick="copyReferLink()" style="background: var(--accent); border: none; color: white; width: 45px; border-radius: 8px; cursor: pointer;"><i class="fas fa-copy"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <div id="tasks-section" class="section" style="padding:15px;">
+            <h2 style="margin-bottom:15px;">Daily Tasks</h2>
+            <div class="stat-box" style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="text-align: left;">
+                    <h4>Video Ad Task</h4>
+                    <p style="color:var(--accent)">Reward: ৳ 10.00</p>
+                </div>
+                <button class="btn btn-earn" style="flex:none; padding:8px 20px;" onclick="claimAdReward(10)">Watch</button>
+            </div>
+        </div>
+
+        <div id="profile-section" class="section" style="padding:15px;">
+            <div class="stat-box" style="margin-bottom: 20px;">
+                <h3 style="margin-bottom:15px; text-align: left;">Settings</h3>
+                <input type="text" id="edit-name" placeholder="Name">
+                <input type="text" id="edit-img" placeholder="Profile Link">
+                <button class="btn btn-earn" style="width:100%;" onclick="updateProfile()">Update Profile</button>
+            </div>
+            <div class="stat-box">
+                <h3 style="margin-bottom:15px; text-align: left;">Withdraw</h3>
+                <input type="text" id="withdraw-number" placeholder="Bkash/Nagad Number">
+                <input type="number" id="withdraw-amount" placeholder="Min 50 BDT">
+                <button class="btn btn-earn" style="width:100%;" onclick="sendRequest()">Withdraw Now</button>
+            </div>
+        </div>
+
+        <nav class="bottom-nav">
+            <a href="javascript:void(0)" class="nav-item active" onclick="navigateTo('home', this)"><i class="fas fa-home"></i>Home</a>
+            <a href="javascript:void(0)" class="nav-item" onclick="navigateTo('tasks', this)"><i class="fas fa-th-large"></i>Earn</a>
+            <div class="fab-button" onclick="navigateTo('tasks')"><i class="fas fa-play"></i></div>
+            <a href="javascript:void(0)" class="nav-item" onclick="navigateTo('profile', this)"><i class="fas fa-wallet"></i>Wallet</a>
+            <a href="javascript:void(0)" class="nav-item" onclick="navigateTo('profile', this)"><i class="fas fa-user"></i>Profile</a>
+        </nav>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBmkOpRQMS-04mk1cbTTi6y-CaSA1RQhsI",
+            authDomain: "elite-reward-23bdc.firebaseapp.com",
+            databaseURL: "https://elite-reward-23bdc-default-rtdb.firebaseio.com",
+            projectId: "elite-reward-23bdc",
+            storageBucket: "elite-reward-23bdc.firebasestorage.app",
+            messagingSenderId: "26353499620",
+            appId: "1:26353499620:web:b92d1cee2859ec608e5bf1"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        const tg = window.Telegram?.WebApp;
+        if(tg) { tg.expand(); tg.ready(); }
+        
+        const user = tg?.initDataUnsafe?.user;
+        // যদি টেলিগ্রাম আইডি না পাওয়া যায় তবে টেস্ট আইডি ব্যবহার হবে
+        const userId = user ? user.id.toString() : "TEST_USER"; 
+        const botUsername = "elitereward_bot"; 
+        let currentBalance = 0;
+
+        function initApp() {
+            db.ref('users/' + userId).on('value', (snapshot) => {
+                let data = snapshot.val();
+                if (!data) {
+                    data = {
+                        userName: user ? (user.first_name + (user.last_name ? " " + user.last_name : "")) : "New User",
+                        balance: 0,
+                        totalAds: 0,
+                        totalRefer: 0,
+                        profilePic: user?.photo_url || "https://i.pravatar.cc/150?img=11"
+                    };
+                    db.ref('users/' + userId).set(data);
+                }
+
+                currentBalance = parseFloat(data.balance || 0);
+                document.getElementById('main-balance').innerText = currentBalance.toFixed(2);
+                document.getElementById('header-balance').innerText = currentBalance.toFixed(2);
+                document.getElementById('stat-ads').innerText = data.totalAds || 0;
+                document.getElementById('stat-refer').innerText = data.totalRefer || 0;
+                document.getElementById('header-name').innerHTML = `${data.userName} <i class="fas fa-check-circle" style="color:var(--accent);"></i>`;
+                document.getElementById('header-img').src = data.profilePic;
+                document.getElementById('edit-name').value = data.userName;
+                document.getElementById('edit-img').value = data.profilePic;
+                document.getElementById('refer-link-input').value = `https://t.me/${botUsername}?start=${userId}`;
+            });
+        }
+
+        function navigateTo(id, el) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(id + '-section').classList.add('active');
+            if(el && el.classList.contains('nav-item')) {
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                el.classList.add('active');
+            }
+        }
+
+        function claimAdReward(amount) {
+            db.ref('users/' + userId).update({
+                balance: currentBalance + amount,
+                totalAds: firebase.database.ServerValue.increment(1)
+            }).then(() => showToast("৳" + amount + " Reward Added!"));
+        }
+
+        function sendRequest() {
+            const number = document.getElementById('withdraw-number').value;
+            const amount = parseFloat(document.getElementById('withdraw-amount').value);
+            if (!number || isNaN(amount) || amount < 50) return showToast("Min 50 BDT required!");
+            if (amount > currentBalance) return showToast("Insufficient balance!");
+
+            db.ref('withdrawals').push({
+                userId, number, amount, status: "pending", time: new Date().toLocaleString()
+            }).then(() => {
+                db.ref('users/' + userId).update({ balance: currentBalance - amount });
+                showToast("Withdraw request sent!");
+                document.getElementById('withdraw-number').value = "";
+                document.getElementById('withdraw-amount').value = "";
+            });
+        }
+
+        function updateProfile() {
+            const newName = document.getElementById('edit-name').value;
+            const newImg = document.getElementById('edit-img').value;
+            if (!newName) return showToast("Name is required!");
+            db.ref('users/' + userId).update({ userName: newName, profilePic: newImg })
+              .then(() => showToast("Profile Updated!"));
+        }
+
+        function copyReferLink() {
+            const copyText = document.getElementById("refer-link-input");
+            copyText.select();
+            navigator.clipboard.writeText(copyText.value);
+            showToast("Refer Link Copied!");
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg; t.style.display = 'block';
+            setTimeout(() => t.style.display = 'none', 2500);
+        }
+
+        window.onload = initApp;
+    </script>
+</body>
+</html>
