@@ -881,49 +881,50 @@
                 }).then(() => showToast("✅ ৳50.00 বোনাস যোগ হয়েছে!"));
             }
         }, 5000);
-    }
-
-    async function createNewUser(userId, referrerId = null) {
-        const userRef = db.ref('users/' + userId);
+    }async function createNewUser(userId, referrerId = null) {
+    const userRef = db.ref('users/' + userId);
+    const snapshot = await userRef.once('value');
+    
+    if (!snapshot.exists()) {
+        const newUserData = {
+            userName: tg?.initDataUnsafe?.user?.first_name || "New User",
+            balance: 25,
+            lastTaskDate: "",
+            tasksDoneToday: 0,
+            joinedChannel: false,
+            totalAds: 0,
+            totalReferrals: 0,
+            referredBy: referrerId || null,
+            profilePic: tg?.initDataUnsafe?.user?.photo_url || "https://i.pravatar.cc/150?img=11",
+            createdAt: new Date().toISOString(),
+            userType: "new",
+            vipEligible: false,
+            premiumCompletedTasks: {}
+        };
         
-        const snapshot = await userRef.once('value');
-        if (!snapshot.exists()) {
-            const newUserData = {
-                userName: tg?.initDataUnsafe?.user?.first_name || "New User",
-                balance: 25,
-                lastTaskDate: "",
-                tasksDoneToday: 0,
-                joinedChannel: false,
-                totalAds: 0,
-                totalReferrals: 0,
-                referredBy: referrerId || null,
-                profilePic: tg?.initDataUnsafe?.user?.photo_url || "https://i.pravatar.cc/150?img=11",
-                createdAt: new Date().toISOString(),
-                userType: "new",
-                vipEligible: false,
-                premiumCompletedTasks: {}
-            };
+        await userRef.set(newUserData);
+        showToast("🎉 সাইনআপ বোনাস ৳২৫ পেয়েছেন!");
+        
+        // ========== রেফারার বোনাস (এটাই যোগ করলাম) ==========
+        if (referrerId && referrerId !== userId) {
+            const referrerRef = db.ref('users/' + referrerId);
+            const referrerSnap = await referrerRef.once('value');
             
-            await userRef.set(newUserData);
-            showToast("🎉 সাইনআপ বোনাস ৳২৫ পেয়েছেন!");
-            
-            if (referrerId && referrerId !== userId) {
-                const referrerRef = db.ref('users/' + referrerId);
-                const referrerSnap = await referrerRef.once('value');
-                
-                if (referrerSnap.exists()) {
-                    const referrerData = referrerSnap.val();
-                    const newReferrerBalance = (referrerData.balance || 0) + 50;
-                    const newReferralCount = (referrerData.totalReferrals || 0) + 1;
-                    
-                    await referrerRef.update({
-                        balance: newReferrerBalance,
-                        totalReferrals: newReferralCount
-                    });
-                    
-                    showToast("🎉 রেফারেল বোনাস ৳৫০ পেয়েছেন!");
-                }
+            if (referrerSnap.exists()) {
+                const referrerData = referrerSnap.val();
+                await referrerRef.update({
+                    balance: (referrerData.balance || 0) + 50,
+                    totalReferrals: (referrerData.totalReferrals || 0) + 1
+                });
+                showToast("🎉 আপনি ৳৫০ রেফারেল বোনাস পেয়েছেন!");
             }
+        }
+        // ====================================================
+        
+        return newUserData;
+    }
+    return snapshot.val();
+}
             
             return newUserData;
         }
