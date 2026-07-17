@@ -3197,7 +3197,7 @@
             if (amount < minWithdraw) return showToast(`❌ Minimum withdrawal ${minWithdraw} BDT!`);
             if (amount > currentBalance) return showToast("❌ Insufficient balance!");
             const totalReferrals = userData.totalReferrals || 0;
-            if (totalReferrals < 15) return showToast(`❌ Need 15 referrals. You have ${totalReferrals}`);
+            if (totalReferrals < 5) return showToast(`❌ Need 5 referrals. You have ${totalReferrals}`);
             const totalAds = userData.totalAds || 0;
             if (totalAds < 50) return showToast(`❌ Need 50 ads watched. You have ${totalAds}`);
 
