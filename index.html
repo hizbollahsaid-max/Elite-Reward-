@@ -3277,45 +3277,52 @@
         }
 
         function sendRequest() {
-            const number = document.getElementById('withdraw-number').value;
-            const amount = parseFloat(document.getElementById('withdraw-amount').value);
-            if (!selectedMethod) return showToast("❌ Select a method!");
-            if (!number) return showToast("❌ Enter account number!");
-            const minWithdraw = settings.minWithdraw || 500;
-            if (amount < minWithdraw) return showToast(`❌ Minimum withdrawal ${minWithdraw} BDT!`);
-            if (amount > currentBalance) return showToast("❌ Insufficient balance!");
-            const totalReferrals = userData.totalReferrals || 0;
-            if (totalReferrals < 5) return showToast(`❌ Need 5 referrals. You have ${totalReferrals}`);
-            const totalAds = userData.totalAds || 0;
-            if (totalAds < 50) return showToast(`❌ Need 50 ads watched. You have ${totalAds}`);
+    const number = document.getElementById('withdraw-number').value;
+    const amount = parseFloat(document.getElementById('withdraw-amount').value);
+    if (!selectedMethod) return showToast("❌ Select a method!");
+    if (!number) return showToast("❌ Enter account number!");
+    const minWithdraw = settings.minWithdraw || 500;
+    if (amount < minWithdraw) return showToast(`❌ Minimum withdrawal ${minWithdraw} BDT!`);
+    if (amount > currentBalance) return showToast("❌ Insufficient balance!");
+    
+    // ✅ ৫ রেফারেল চেক (আপনি সেটা রেখেছেন, এখানেও আছে)
+    const totalReferrals = userData.totalReferrals || 0;
+    if (totalReferrals < 5) return showToast(`❌ Need 5 referrals. You have ${totalReferrals}`);
+    
+    const totalAds = userData.totalAds || 0;
+    if (totalAds < 50) return showToast(`❌ Need 50 ads watched. You have ${totalAds}`);
 
-            const chargePercent = settings.withdrawCharge || 0;
-            const chargeAmount = (amount * chargePercent) / 100;
-            const netAmount = amount - chargeAmount;
+    const chargePercent = settings.withdrawCharge || 0;
+    const chargeAmount = (amount * chargePercent) / 100;
+    const netAmount = amount - chargeAmount;
 
-            firestore.collection('withdrawals').add({
-                userId: userId,
-                number: number,
-                amount: amount,
-                netAmount: netAmount,
-                charge: chargeAmount,
-                chargePercent: chargePercent,
-                method: selectedMethod,
-                status: "pending",
-                time: new Date().toLocaleString()
-            }).then(() => {
-                firestore.collection('users').doc(userId).update({ balance: currentBalance - amount });
-                showToast(`✅ Withdraw request submitted! (Net: ৳${netAmount.toFixed(2)})`);
-                loadWithdrawHistory();
-                firestore.collection('users').doc(userId).get().then((doc) => {
-                    if (doc.exists) {
-                        userData = doc.data();
-                        currentBalance = parseFloat(userData.balance || 0);
-                        updateUI();
-                    }
-                });
-            });
-        }
+    firestore.collection('withdrawals').add({
+        userId: userId,
+        number: number,
+        amount: amount,
+        netAmount: netAmount,
+        charge: chargeAmount,
+        chargePercent: chargePercent,
+        method: selectedMethod, // ✅ এখানে 'selectedMethod' দিন
+        status: "pending",
+        time: new Date().toLocaleString()
+    }).then(() => {
+        firestore.collection('users').doc(userId).update({ balance: currentBalance - amount });
+        showToast(`✅ Withdraw request submitted! (Net: ৳${netAmount.toFixed(2)})`);
+        loadWithdrawHistory();
+        // ব্যালেন্স রিফ্রেশ
+        firestore.collection('users').doc(userId).get().then((doc) => {
+            if (doc.exists) {
+                userData = doc.data();
+                currentBalance = parseFloat(userData.balance || 0);
+                updateUI();
+            }
+        });
+    }).catch((err) => {
+        console.error("Withdraw error:", err);
+        showToast("❌ Withdraw failed. Try again.");
+    });
+}
 
         // ==========================================================
         // NAVIGATION
